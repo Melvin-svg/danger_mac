@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVST-Lite // Operation Phantom Forge — Tactical SOC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          },
+          colors: {
+            neon: {
+              green: '#00ff9d',
+              cyan: '#00f0ff',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              red: '#ff3366',
+              purple: '#b026ff'
+            },
+            soc: {
+              bg: '#080c14',
+              surface: '#0f1422',
+              panel: '#131a2c',
+              border: '#1e2942',
+              borderGlow: '#00ff9d33'
+            }
+          },
+          animation: {
+            'radar-sweep': 'radarSweep 4s linear infinite',
+            'scanline': 'scanline 8s linear infinite',
+            'pulse-glow': 'pulseGlow 2s ease-in-out infinite'
+          },
+          keyframes: {
+            radarSweep: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' }
+            },
+            scanline: {
+              '0%': { transform: 'translateY(-100%)' },
+              '100%': { transform: 'translateY(1000%)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: 0.4 },
+              '50%': { opacity: 1 }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #060910;
+      color: #e2e8f0;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(0, 255, 157, 0.04) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+      overflow-x: hidden;
+    }
+    .crt-overlay::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+      z-index: 40;
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .glow-box-green { box-shadow: 0 0 20px -5px rgba(0, 255, 157, 0.25); }
+    .glow-box-cyan { box-shadow: 0 0 20px -5px rgba(0, 240, 255, 0.25); }
+    .glow-box-red { box-shadow: 0 0 20px -5px rgba(255, 51, 102, 0.3); }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #080c14; }
+    ::-webkit-scrollbar-thumb { background: #1e2942; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00ff9d; }
+    @keyframes memeShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased text-slate-200 flex flex-col crt-overlay selection:bg-neon-green selection:text-black">
+
+  <header class="border-b border-soc-border bg-soc-surface/90 backdrop-blur-md sticky top-0 z-50 px-4 py-2.5 flex items-center justify-between text-xs font-mono">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded border border-neon-green/40 bg-soc-bg flex items-center justify-center p-0.5 glow-box-green">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+            <polygon points="50,5 92,28 92,72 50,95 8,72 8,28" stroke="#00FF9D" stroke-width="2.5" fill="#0A0E17" fill-opacity="0.9"/>
+            <polygon points="50,15 83,34 83,66 50,85 17,66 17,34" stroke="#00FF9D" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+            <path d="M50 25 L50 75 M25 50 L75 50" stroke="#06B6D4" stroke-width="1.5" opacity="0.5"/>
+            <polygon points="50,32 68,62 32,62" stroke="#00FF9D" stroke-width="2" fill="#00FF9D" fill-opacity="0.15"/>
+            <circle cx="50" cy="52" r="4" fill="#00FF9D"/>
+            <circle cx="50" cy="52" r="8" stroke="#00FF9D" stroke-width="1" stroke-dasharray="2 2" opacity="0.8"/>
+            <path d="M38 72 L62 72" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-white tracking-widest text-sm uppercase">AVST-Lite</span>
+            <span class="px-1.5 py-0.2 bg-neon-green/10 text-neon-green border border-neon-green/30 text-[10px] rounded font-mono">PHANTOM FORGE 🕹️</span>
+          </div>
+          <span class="text-[10px] text-slate-400">Hack stuff. Get flags. Don't get caught.</span>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center space-x-3 pl-4 border-l border-soc-border/60">
+        <div class="flex items-center space-x-1.5">
+          <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse" id="ollama-status-dot"></span>
+          <span class="text-neon-green font-semibold" id="ai-model-tag">Checking...</span>
+        </div>
+        <span class="text-slate-600">|</span>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-slate-400">🏃</span>
+          <span class="text-neon-cyan font-semibold" id="ai-latency">—</span>
+        </div>
+        <span class="text-slate-600">|</span>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-emerald-400" id="sandbox-state">Checking backend...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3 bg-soc-bg px-3 py-1.5 rounded border border-soc-border">
+        <div class="flex items-center space-x-1.5">
+          <span class="text-amber-400 font-bold">XP:</span>
+          <span id="player-xp" class="text-white font-mono font-bold text-sm tracking-wide">450</span>
+        </div>
+        <div class="w-px h-3.5 bg-soc-border"></div>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-neon-cyan font-bold">RANK:</span>
+          <span class="text-slate-200">SPECIALIST III</span>
+        </div>
+        <div class="w-px h-3.5 bg-soc-border"></div>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-neon-green font-bold">VERIFIED FLAGS:</span>
+          <span id="verified-count" class="text-neon-green font-bold">0/3</span>
+        </div>
+      </div>
+
+      <button id="sound-toggle-btn" class="p-1.5 border border-soc-border hover:border-neon-cyan/50 text-slate-300 hover:text-neon-cyan rounded bg-soc-panel transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+      </button>
+
+      <button onclick="triggerEmergencyReset()" class="px-2.5 py-1 bg-neon-red/10 border border-neon-red/40 hover:bg-neon-red/20 text-neon-red rounded text-[11px] font-mono tracking-wider transition-all">
+        PURGE INSTANCE
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 p-3 md:p-4 grid grid-cols-12 gap-3 max-w-[1920px] mx-auto w-full">
+
+    <section class="col-span-12 lg:col-span-3 flex flex-col space-y-3">
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-3.5 relative overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between pb-2 border-b border-soc-border/60 mb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 rounded-full bg-neon-cyan"></div>
+            <h2 class="text-xs font-mono font-bold tracking-wider uppercase text-neon-cyan">2B Mission Synthesis</h2>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 bg-soc-bg px-2 py-0.5 rounded border border-soc-border">OLLAMA ENGINE</span>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+          Pick a vibe, spin up a fresh sandbox, and go break it. 🎯
+        </p>
+
+        <div class="space-y-2 mb-3">
+          <label class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Select Vector Sandbox</label>
+          <div class="grid grid-cols-3 gap-1.5 text-xs font-mono">
+            <button onclick="selectSandbox('web')" id="btn-tab-web" class="py-2 px-1 text-center rounded border bg-neon-green/10 border-neon-green text-neon-green font-semibold transition-all">
+              WEB-APP<br><span class="text-[9px] opacity-75">SQLi / XSS</span>
+            </button>
+            <button onclick="selectSandbox('iot')" id="btn-tab-iot" class="py-2 px-1 text-center rounded border bg-soc-bg border-soc-border text-slate-400 hover:text-slate-200 transition-all">
+              IOT SCADA<br><span class="text-[9px] opacity-75">MQTT Telemetry</span>
+            </button>
+            <button onclick="selectSandbox('forensic')" id="btn-tab-forensic" class="py-2 px-1 text-center rounded border bg-soc-bg border-soc-border text-slate-400 hover:text-slate-200 transition-all">
+              FORENSICS<br><span class="text-[9px] opacity-75">Stego Memory</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-[10px] font-mono text-slate-400 flex justify-between items-center mb-1">
+            <span>SPICE LEVEL 🌶️</span>
+            <span class="text-neon-cyan" id="complexity-label">Medium</span>
+          </label>
+          <input type="range" min="1" max="3" value="2" onchange="updateComplexity(this.value)" class="w-full h-1 bg-soc-bg rounded-lg appearance-none cursor-pointer accent-neon-cyan">
+        </div>
+
+        <button onclick="generateProceduralMission()" id="gen-mission-btn" class="w-full py-2.5 bg-gradient-to-r from-neon-green/20 via-neon-cyan/20 to-neon-green/20 hover:from-neon-green/30 hover:to-neon-cyan/30 text-neon-green font-mono font-bold text-xs uppercase tracking-widest border border-neon-green/50 rounded flex items-center justify-center space-x-2 transition-all glow-box-green group">
+          <svg class="w-4 h-4 animate-spin hidden" id="gen-spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span id="gen-btn-text">🎲 ROLL A MISSION</span>
+        </button>
+      </div>
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-3.5 flex flex-col relative overflow-hidden">
+        <div class="flex items-center justify-between pb-2 border-b border-soc-border/60 mb-2">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-neon-amber"></span>
+            <h2 class="text-xs font-mono font-bold tracking-wider uppercase text-slate-300">🏆 Challenge Board</h2>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400" id="score-total">0 pts</span>
+        </div>
+        <div class="space-y-1.5 font-mono text-xs" id="challenge-board">
+          <div class="flex items-center justify-between bg-soc-bg border border-soc-border/80 px-2.5 py-1.5 rounded cursor-pointer hover:border-neon-cyan/50" data-board="web" onclick="selectSandbox('web')">
+            <span class="text-slate-300">🔓 Web-App SQLi</span>
+            <span class="text-slate-500" data-board-status="web">100 pts</span>
+          </div>
+          <div class="flex items-center justify-between bg-soc-bg border border-soc-border/80 px-2.5 py-1.5 rounded cursor-pointer hover:border-neon-cyan/50" data-board="iot" onclick="selectSandbox('iot')">
+            <span class="text-slate-300">🔓 IoT SCADA Override</span>
+            <span class="text-slate-500" data-board-status="iot">150 pts</span>
+          </div>
+          <div class="flex items-center justify-between bg-soc-bg border border-soc-border/80 px-2.5 py-1.5 rounded cursor-pointer hover:border-neon-cyan/50" data-board="forensic" onclick="selectSandbox('forensic')">
+            <span class="text-slate-300">🔓 Forensics Stego</span>
+            <span class="text-slate-500" data-board-status="forensic">200 pts</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-3.5 flex flex-col flex-1 relative overflow-hidden">
+        <div class="flex items-center justify-between pb-2 border-b border-soc-border/60 mb-2">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-neon-green"></span>
+            <h2 class="text-xs font-mono font-bold tracking-wider uppercase text-slate-300">Live Telemetry Radar</h2>
+          </div>
+          <span class="text-[10px] font-mono text-neon-green animate-pulse">GRID: ACTIVE</span>
+        </div>
+
+        <div class="relative h-24 bg-soc-bg rounded border border-soc-border/80 flex items-center justify-center overflow-hidden my-1">
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="w-28 h-28 rounded-full border border-neon-green/20"></div>
+            <div class="w-16 h-16 rounded-full border border-neon-green/30"></div>
+            <div class="absolute w-full h-[1px] bg-neon-green/20"></div>
+            <div class="absolute h-full w-[1px] bg-neon-green/20"></div>
+            <div class="absolute w-16 h-16 bg-gradient-to-tr from-neon-green/30 via-transparent to-transparent origin-bottom-left animate-radar-sweep pointer-events-none" style="bottom: 50%; left: 50%;"></div>
+          </div>
+          <div class="absolute top-6 left-10 flex items-center space-x-1 animate-pulse">
+            <div class="w-2 h-2 rounded-full bg-neon-red"></div>
+            <span class="text-[9px] font-mono text-neon-red bg-black/80 px-1 border border-neon-red/30">👀 SNOOPING</span>
+          </div>
+          <div class="absolute bottom-6 right-8 flex items-center space-x-1">
+            <div class="w-2 h-2 rounded-full bg-neon-cyan animate-ping"></div>
+            <span class="text-[9px] font-mono text-neon-cyan bg-black/80 px-1 border border-neon-cyan/30">🎯 TARGET</span>
+          </div>
+        </div>
+
+        <div id="soc-log-stream" class="mt-2 space-y-1 font-mono text-[10px] text-slate-400 overflow-y-auto max-h-20 pr-1">
+          <div class="flex items-center space-x-2 text-slate-500">
+            <span class="text-neon-cyan">[boot]</span>
+            <span>AVST-Lite backend link initializing...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="col-span-12 lg:col-span-6 flex flex-col space-y-3">
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-4 relative overflow-hidden" id="mission-dossier-card">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-soc-border/70 pb-3 mb-3">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 bg-neon-red/10 text-neon-red border border-neon-red/30 rounded text-[10px] font-mono font-bold tracking-wider uppercase" id="mission-defcon">DEFCON 3 STANDBY</span>
+              <span class="text-slate-500 font-mono text-xs">•</span>
+              <span class="text-xs font-mono text-slate-400" id="mission-codename-prefix">OPERATION CODE:</span>
+            </div>
+            <h1 class="text-lg md:text-xl font-bold tracking-tight text-white mt-1 flex items-center space-x-2">
+              <span id="mission-title" class="text-neon-green">No Active Mission</span>
+              <span class="text-xs font-mono text-slate-400 font-normal" id="mission-cve">[click Generate Mission]</span>
+            </h1>
+          </div>
+
+          <div class="flex items-center space-x-2 font-mono text-xs">
+            <span class="text-slate-400">Sandbox Target:</span>
+            <span class="px-2 py-1 bg-soc-bg border border-neon-cyan/40 text-neon-cyan rounded font-bold" id="target-ip">—</span>
+            <button onclick="copyTargetIp()" title="Copy Target IP" class="p-1 hover:bg-soc-border text-slate-400 hover:text-white rounded">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 text-xs font-mono">
+          <div class="bg-soc-bg/80 border border-soc-border p-2.5 rounded">
+            <div class="text-[10px] text-slate-400 uppercase">Target Architecture</div>
+            <div class="text-slate-200 font-semibold mt-0.5" id="target-arch">Alpine 3.19 + Python Flask</div>
+            <div class="text-[10px] text-neon-cyan mt-1" id="target-mode">Mode: —</div>
+          </div>
+          <div class="bg-soc-bg/80 border border-soc-border p-2.5 rounded">
+            <div class="text-[10px] text-slate-400 uppercase">Exploitation Target</div>
+            <div class="text-neon-amber font-semibold mt-0.5" id="target-vector">Select a sandbox category</div>
+            <div class="text-[10px] text-slate-400 mt-1">Goal: Recover the flag</div>
+          </div>
+          <div class="bg-soc-bg/80 border border-soc-border p-2.5 rounded">
+            <div class="text-[10px] text-slate-400 uppercase">Reward Bounty</div>
+            <div class="text-neon-green font-semibold mt-0.5" id="reward-points">+150 XP • Provenance Verified</div>
+            <div class="text-[10px] text-slate-400 mt-1">Est. Time: 8-12 Minutes</div>
+          </div>
+        </div>
+
+        <div class="bg-soc-bg border-l-2 border-neon-cyan p-3 rounded text-xs leading-relaxed text-slate-300 font-mono mb-4">
+          <div class="text-[10px] text-neon-cyan uppercase font-bold tracking-wider mb-1 flex items-center justify-between">
+            <span>[CLANDESTINE INTEL BRIEFING]</span>
+            <span class="text-slate-500 font-normal" id="lore-meta">—</span>
+          </div>
+          <p id="mission-lore">Generate a mission to receive a tactical briefing.</p>
+        </div>
+
+        <details class="mb-4 bg-soc-bg/60 border border-soc-border rounded group">
+          <summary class="cursor-pointer select-none px-3 py-2 text-[11px] font-mono text-neon-amber font-bold uppercase tracking-wider flex items-center justify-between">
+            <span>💡 How do I even start?</span>
+            <span class="text-slate-500 group-open:rotate-180 transition-transform">▾</span>
+          </summary>
+          <div id="how-to-solve" class="px-3 pb-3 text-[11px] font-mono text-slate-400 leading-relaxed">
+            Generate a mission first — the goal and starting move will show up here.
+          </div>
+        </details>
+
+        <div class="flex items-center justify-between bg-soc-surface p-2.5 rounded border border-soc-border text-xs font-mono">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-500" id="container-status-dot"></span>
+            <span class="text-slate-300 font-semibold" id="container-status-label">SANDBOX STATUS: IDLE</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-slate-400" id="container-ports">PORT MAP: —</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="generateProceduralMission()" class="px-2 py-1 bg-soc-bg border border-soc-border hover:border-slate-400 rounded text-slate-300 transition-all text-[11px]">
+              🔄 REDEPLOY POD
+            </button>
+            <button onclick="inspectTargetWeb()" class="px-2 py-1 bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/30 rounded font-semibold transition-all text-[11px]">
+              🌐 OPEN TARGET UI
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-soc-bg border border-soc-border rounded-lg flex-1 flex flex-col min-h-[300px] overflow-hidden shadow-2xl relative">
+        <div class="bg-soc-panel px-3 py-2 border-b border-soc-border flex items-center justify-between text-xs font-mono">
+          <div class="flex items-center space-x-2">
+            <div class="flex space-x-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+            </div>
+            <span class="text-slate-400 ml-2">OPERATOR CLI:</span>
+            <span class="text-neon-green font-semibold" id="terminal-session-label">root@phantom-sandbox:~#</span>
+          </div>
+          <div class="flex items-center space-x-2 text-[11px] text-slate-400">
+            <span class="hidden sm:inline">Try: <code class="text-neon-cyan">curl</code>, <code class="text-neon-cyan">scan</code>, <code class="text-neon-cyan">exploit</code>, <code class="text-neon-cyan">help</code></span>
+            <button onclick="clearTerminal()" class="text-slate-400 hover:text-white px-1.5 py-0.5 bg-soc-bg rounded border border-soc-border">CLS</button>
+          </div>
+        </div>
+
+        <div id="terminal-screen" class="flex-1 p-3 font-mono text-xs leading-relaxed overflow-y-auto space-y-1.5 text-slate-300 bg-[#060a12]">
+          <div class="text-slate-500">AVST-Lite Embedded Tactical Shell v2.4</div>
+          <div class="text-slate-500">Type <span class="text-neon-green font-semibold">help</span> for commands. Generate a mission first to deploy a live sandbox.</div>
+        </div>
+
+        <div class="bg-soc-panel/60 border-t border-soc-border px-3 py-2 flex items-center space-x-2 font-mono text-xs">
+          <span class="text-neon-green font-bold">root@phantom:~$</span>
+          <input type="text" id="cli-input" placeholder="Type a command (e.g., 'exploit', 'curl', 'status', 'help')..."
+                 class="flex-1 bg-transparent border-none outline-none text-neon-green font-mono placeholder:text-slate-600"
+                 onkeydown="handleCliKey(event)" autocomplete="off" spellcheck="false">
+          <button onclick="executeCliCommand()" class="px-3 py-1 bg-neon-green/20 hover:bg-neon-green/30 border border-neon-green/50 text-neon-green rounded text-xs font-semibold">
+            EXEC
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="col-span-12 lg:col-span-3 flex flex-col space-y-3">
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-3.5">
+        <div class="flex items-center justify-between pb-2 border-b border-soc-border/60 mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-neon-green"></span>
+            <h2 class="text-xs font-mono font-bold tracking-wider uppercase text-slate-200">Flag Ingestion</h2>
+          </div>
+          <span class="text-[10px] font-mono text-neon-green font-semibold">ZERO-TRUST</span>
+        </div>
+
+        <div class="space-y-2">
+          <div class="relative">
+            <input type="text" id="flag-input" placeholder="flag{phantom_...}"
+                   class="w-full bg-soc-bg border border-soc-border focus:border-neon-green rounded p-2 text-xs font-mono text-neon-green outline-none transition-all placeholder:text-slate-600">
+          </div>
+          <button onclick="submitFlagVerification()" id="verify-flag-btn" class="w-full py-2 bg-neon-green hover:bg-neon-emerald text-soc-bg font-mono font-bold text-xs uppercase tracking-wider rounded transition-all flex items-center justify-center space-x-1.5 shadow-lg shadow-neon-green/20">
+            <span>RUN EVIDENCE SCANNER</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </button>
+          <div id="fail-meme" hidden class="text-center text-xs font-mono text-neon-red bg-neon-red/10 border border-neon-red/30 rounded p-2 leading-relaxed"></div>
+        </div>
+      </div>
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-3.5 flex flex-col relative overflow-hidden" id="evidence-scanner-card">
+        <div class="flex items-center justify-between pb-2 border-b border-soc-border/60 mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"></div>
+            <h2 class="text-xs font-mono font-bold tracking-wider uppercase text-neon-cyan">Evidence Provenance Engine</h2>
+          </div>
+          <span class="text-[9px] font-mono px-1.5 py-0.5 bg-soc-bg text-slate-400 border border-soc-border rounded" id="provenance-overall-badge">STANDBY</span>
+        </div>
+
+        <p class="text-[11px] text-slate-400 mb-2.5 font-mono">
+          Deep forensic trace analysis replaces binary pass/fail with real container log matching.
+        </p>
+
+        <div class="space-y-2 font-mono text-xs">
+          <div class="bg-soc-bg border border-soc-border/80 p-2.5 rounded flex items-center justify-between" id="prov-row-http">
+            <div>
+              <div class="text-[10px] text-slate-400 uppercase">1. Server HTTP Audit Trace</div>
+              <div class="text-slate-200 text-xs font-semibold mt-0.5" id="prov-http-detail">No scan run yet</div>
+            </div>
+            <span class="px-2 py-0.5 bg-soc-bg text-slate-500 border border-soc-border rounded text-[10px] font-bold tracking-wider" id="prov-http-badge">—</span>
+          </div>
+
+          <div class="bg-soc-bg border border-soc-border/80 p-2.5 rounded flex items-center justify-between" id="prov-row-binary">
+            <div>
+              <div class="text-[10px] text-slate-400 uppercase">2. Flag Entropy & Hash Trace</div>
+              <div class="text-slate-200 text-xs font-semibold mt-0.5" id="prov-binary-detail">No scan run yet</div>
+            </div>
+            <span class="px-2 py-0.5 bg-soc-bg text-slate-500 border border-soc-border rounded text-[10px] font-bold tracking-wider" id="prov-binary-badge">—</span>
+          </div>
+
+          <div class="bg-soc-bg border border-soc-border/80 p-2.5 rounded flex items-center justify-between" id="prov-row-heuristics">
+            <div>
+              <div class="text-[10px] text-slate-400 uppercase">3. Heuristic Exploit Proof</div>
+              <div class="text-slate-200 text-xs font-semibold mt-0.5" id="prov-heuristic-detail">No scan run yet</div>
+            </div>
+            <span class="px-2 py-0.5 bg-soc-bg text-slate-500 border border-soc-border rounded text-[10px] font-bold tracking-wider" id="prov-heuristic-badge">—</span>
+          </div>
+        </div>
+
+        <div class="mt-3 pt-2 border-t border-soc-border/60 flex items-center justify-between text-[11px] font-mono">
+          <span class="text-slate-400">Confidence Score:</span>
+          <span class="text-neon-green font-bold" id="confidence-score">—</span>
+        </div>
+      </div>
+
+      <div class="bg-soc-panel border border-soc-border rounded-lg p-3.5 flex flex-col flex-1 relative overflow-hidden">
+        <div class="flex items-center justify-between pb-2 border-b border-soc-border/60 mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"></div>
+            <h2 class="text-xs font-mono font-bold tracking-wider uppercase text-neon-cyan">AI Commander</h2>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400" id="commander-latency-tag">—</span>
+        </div>
+
+        <div class="mb-2">
+          <div class="text-[10px] font-mono text-slate-400 uppercase mb-1">Tiered Hint Protocol (Consumes XP):</div>
+          <div class="grid grid-cols-3 gap-1 text-[10px] font-mono">
+            <button onclick="requestHint('gentle', 5)" class="p-1.5 rounded border border-soc-border bg-soc-bg hover:border-neon-cyan text-slate-300 hover:text-neon-cyan transition-all text-center">
+              <span class="font-bold">Gentle</span><br><span class="text-amber-400">-5 XP</span>
+            </button>
+            <button onclick="requestHint('tactical', 10)" class="p-1.5 rounded border border-soc-border bg-soc-bg hover:border-neon-amber text-slate-300 hover:text-neon-amber transition-all text-center">
+              <span class="font-bold">Tactical</span><br><span class="text-amber-400">-10 XP</span>
+            </button>
+            <button onclick="requestHint('technique', 20)" class="p-1.5 rounded border border-soc-border bg-soc-bg hover:border-neon-green text-slate-300 hover:text-neon-green transition-all text-center">
+              <span class="font-bold">Technique</span><br><span class="text-amber-400">-20 XP</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="commander-chat-box" class="flex-1 bg-soc-bg border border-soc-border/70 rounded p-2.5 overflow-y-auto max-h-48 space-y-2 text-xs font-mono">
+          <div class="bg-soc-panel/80 border-l-2 border-neon-cyan p-2 rounded text-slate-300">
+            <div class="text-[9px] text-neon-cyan font-bold uppercase mb-0.5">Commander 🫡</div>
+            <div>Roll a mission and holler if you get stuck.</div>
+          </div>
+        </div>
+
+        <div class="mt-2 flex space-x-1.5 font-mono text-xs">
+          <input type="text" id="commander-input" placeholder="Ask Commander a tactical question..."
+                 class="flex-1 bg-soc-bg border border-soc-border focus:border-neon-cyan rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none placeholder:text-slate-600"
+                 onkeydown="if(event.key==='Enter') sendCommanderMessage()">
+          <button onclick="sendCommanderMessage()" class="px-3 py-1.5 bg-neon-cyan/20 border border-neon-cyan/50 hover:bg-neon-cyan/30 text-neon-cyan rounded font-bold transition-all">
+            SEND
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="border-t border-soc-border bg-soc-surface/90 px-4 py-2 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400">
+    <div class="flex items-center space-x-4">
+      <span>OPERATION PHANTOM FORGE // AVST-LITE RESEARCH RUNTIME</span>
+      <span class="text-slate-600">|</span>
+      <span class="text-neon-green" id="docker-engine-tag">DOCKER ENGINE: Checking...</span>
+    </div>
+    <div class="flex items-center space-x-3 mt-1 sm:mt-0">
+      <span class="text-slate-500">16-Hour Hackathon Edition</span>
+      <span class="w-1.5 h-1.5 rounded-full bg-neon-green"></span>
+      <span class="text-slate-300 font-bold">READY FOR DEPLOYMENT</span>
+    </div>
+  </footer>
+
+  <div id="target-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-soc-panel border border-soc-border rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
+      <div class="bg-soc-bg px-4 py-3 border-b border-soc-border flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 rounded-full bg-neon-green"></div>
+          <span class="text-xs font-mono font-bold text-white uppercase" id="modal-target-title">Target</span>
+        </div>
+        <button onclick="closeTargetModal()" class="text-slate-400 hover:text-white font-mono text-sm px-2">✕</button>
+      </div>
+
+      <div class="p-6 text-slate-300 font-mono text-xs space-y-4">
+        <div class="bg-soc-bg p-4 rounded border border-soc-border">
+          <div class="text-slate-400 text-xs mb-1 font-bold">TARGET ENDPOINT:</div>
+          <code class="text-neon-cyan block overflow-x-auto whitespace-pre" id="modal-target-endpoint">—</code>
+        </div>
+        <p class="text-slate-400" id="modal-target-note">Open the target in a new tab, or use the embedded terminal's <code class="text-neon-green">curl</code> / <code class="text-neon-green">exploit</code> commands.</p>
+        <div class="flex justify-end space-x-2 pt-2">
+          <a id="modal-open-link" href="#" target="_blank" class="px-4 py-2 bg-neon-green text-black font-bold rounded text-xs hover:bg-neon-emerald transition-all">
+            OPEN IN NEW TAB
+          </a>
+          <button onclick="closeTargetModal()" class="px-4 py-2 bg-soc-bg border border-soc-border rounded text-slate-300 hover:text-white text-xs">
+            DISMISS
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin.includes('8000') || window.location.protocol === 'file:'
+      ? 'http://localhost:8000'
+      : '';
+
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playBeep(freq = 880, type = 'sine', duration = 0.08, gainVal = 0.05) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) { /* audio not allowed yet */ }
+    }
+
+    function playSuccessChime() {
+      playBeep(587, 'triangle', 0.12, 0.08);
+      setTimeout(() => playBeep(880, 'triangle', 0.2, 0.08), 100);
+      setTimeout(() => playBeep(1174, 'triangle', 0.35, 0.1), 220);
+    }
+    function playAlertBuzz() { playBeep(220, 'sawtooth', 0.25, 0.09); }
+
+    function confettiBurst() {
+      const colors = ['#00ff9d', '#00f0ff', '#f59e0b', '#b026ff'];
+      for (let i = 0; i < 24; i++) {
+        const bit = document.createElement('div');
+        const size = 4 + Math.random() * 5;
+        bit.style.cssText = `position:fixed;top:45%;left:50%;width:${size}px;height:${size}px;background:${colors[i % colors.length]};z-index:9999;pointer-events:none;border-radius:${Math.random() > 0.5 ? '50%' : '2px'};`;
+        document.body.appendChild(bit);
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 120 + Math.random() * 220;
+        const dx = Math.cos(angle) * dist;
+        const dy = Math.sin(angle) * dist - 80;
+        bit.animate([
+          { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+          { transform: `translate(${dx}px, ${dy}px) rotate(${360 + Math.random() * 360}deg)`, opacity: 0 }
+        ], { duration: 900 + Math.random() * 500, easing: 'cubic-bezier(.2,.8,.2,1)' }).onfinish = () => bit.remove();
+      }
+    }
+
+    document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('sound-toggle-btn');
+      btn.classList.toggle('opacity-40', !soundEnabled);
+      if (soundEnabled) playBeep(1200, 'sine', 0.05);
+    });
+
+    const VECTOR_LABELS = {
+      web: 'Authentication Bypass (SQL Injection)',
+      iot: 'Unauthenticated MQTT Telemetry Override',
+      forensic: 'LSB Steganography + Memory Dump'
+    };
+    const ARCH_LABELS = {
+      web: 'Alpine 3.19 + Python Flask',
+      iot: 'Alpine 3.19 + Flask (SCADA sim)',
+      forensic: 'Alpine 3.19 + Pillow Stego Engine'
+    };
+    const POINTS = { web: 100, iot: 150, forensic: 200 };
+    const HOW_TO_SOLVE = {
+      web: 'The login form doesn\'t sanitize input. In the terminal, run <code class="text-neon-green">exploit</code> to auto-fire a classic <code class="text-neon-cyan">admin\' OR 1=1--</code> payload — or open the target and send it yourself via curl/Postman.',
+      iot: 'The pump controller trusts anyone who talks to it. Run <code class="text-neon-green">exploit</code> in the terminal to POST <code class="text-neon-cyan">{"override": true}</code> to the override endpoint and trigger the safety dump.',
+      forensic: 'This one\'s manual: run <code class="text-neon-green">exploit</code> to get the image URL, download <code class="text-neon-cyan">transmission.png</code>, and pull the flag out of the least-significant bit of each red pixel byte (tools: zsteg, a Python script, or your own LSB reader).'
+    };
+    const FAIL_MEMES = [
+      "🫠  That flag said 'no' faster than I do to Monday mornings.",
+      "📉  Confidence score lower than my will to debug regex at 2am.",
+      "🐌  Nice try. The container didn't even blink.",
+      "🙅  Evidence Scanner said 'ma'am/sir this is a Wendy's.'",
+      "🎣  You fished, but the flag got away. Try a bigger hook.",
+      "🧩  Close, but that puzzle piece is from a different box.",
+      "🚨  Alarm's going off — and it's not the good kind.",
+      "🤡  Certified clown moment. Read the hint, then try again.",
+      "😭  Ayyo! Flag thett poyi... (wrong flag, try again da)",
+      "🙈  Ateyyy! Ithalla sheriyaya answer. Onnude koodi nokku!",
+      "🍌  Pazham nurunnu vaya... this flag slipped like a banana peel.",
+      "🐒  Poli try, but no. Chaattam onnude koodi adikku!",
+      "🔥  Kollam, pakshe thettu. Try again, pattikutty style — never give up!",
+      "😅  Machane, aa flag alla. Terminal-il 'help' adichu nokku.",
+      "🌶️  Adipoli attempt, spice level correct aayilla though.",
+      "🎬  '...Oh no' — Mohanlal, probably, watching this flag attempt."
+    ];
+    const SUCCESS_MEMES = [
+      "NAILED IT! Evidence Scanner verified. +150 XP 🎉",
+      "Polichu machane! Flag kitti! 🔥 +150 XP",
+      "Adipoli! Verified — you absolute legend. +150 XP 🎉",
+      "Kidilan! Evidence Scanner says VERIFIED. Sherikkum polikkum! +150 XP",
+      "Pwoli aayittundu! Flag captured. +150 XP 🏆"
+    ];
+
+    let activeSandboxKey = 'web';
+    let currentMission = null;
+    let playerXp = 450;
+    let verifiedCount = 0;
+    let totalScore = 0;
+    const solvedCategories = new Set();
+
+    async function api(path, opts) {
+      const res = await fetch(`${API_BASE}${path}`, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `HTTP ${res.status}`);
+      }
+      return res.json();
+    }
+
+    async function checkHealth() {
+      try {
+        const h = await api('/api/health');
+        document.getElementById('sandbox-state').innerText = h.docker ? 'Docker Engine Connected' : 'Simulated Mode (no Docker)';
+        document.getElementById('docker-engine-tag').innerText = h.docker ? 'DOCKER ENGINE: CONNECTED' : 'DOCKER ENGINE: SIMULATED';
+        document.getElementById('ai-model-tag').innerText = 'qwen2.5:1.5b (fallback-ready)';
+      } catch (e) {
+        document.getElementById('sandbox-state').innerText = 'Backend unreachable';
+        document.getElementById('ollama-status-dot').className = 'w-2 h-2 rounded-full bg-neon-red';
+        appendTerminal(`[!] Cannot reach backend at ${API_BASE}. Start it with: uvicorn main:app --reload`, 'text-neon-red');
+      }
+    }
+
+    function selectSandbox(key) {
+      playBeep(600, 'sine', 0.05);
+      activeSandboxKey = key;
+      ['web', 'iot', 'forensic'].forEach(k => {
+        const btn = document.getElementById(`btn-tab-${k}`);
+        btn.className = k === key
+          ? "py-2 px-1 text-center rounded border bg-neon-green/10 border-neon-green text-neon-green font-semibold transition-all"
+          : "py-2 px-1 text-center rounded border bg-soc-bg border-soc-border text-slate-400 hover:text-slate-200 transition-all";
+      });
+      document.getElementById('target-vector').innerText = VECTOR_LABELS[key];
+      document.getElementById('target-arch').innerText = ARCH_LABELS[key];
+      document.getElementById('how-to-solve').innerHTML = HOW_TO_SOLVE[key];
+    }
+
+    function updateComplexity(val) {
+      const label = document.getElementById('complexity-label');
+      const defcons = { '1': 'Chill 😌', '2': 'Medium 🔥', '3': 'Brutal 💀' };
+      label.innerText = defcons[val] || 'Medium 🔥';
+      playBeep(700, 'sine', 0.04);
+    }
+
+    async function generateProceduralMission() {
+      playBeep(950, 'sawtooth', 0.1);
+      const btn = document.getElementById('gen-mission-btn');
+      const spinner = document.getElementById('gen-spinner');
+      const text = document.getElementById('gen-btn-text');
+
+      spinner.classList.remove('hidden');
+      text.innerText = "DEPLOYING SANDBOX...";
+      btn.classList.add('opacity-75');
+
+      try {
+        const mission = await api('/api/missions', {
+          method: 'POST',
+          body: JSON.stringify({ category: activeSandboxKey })
+        });
+        currentMission = mission;
+
+        document.getElementById('mission-title').innerText = mission.title;
+        document.getElementById('mission-cve').innerText = `[${mission.category.toUpperCase()} SANDBOX]`;
+        document.getElementById('mission-lore').innerText = `"${mission.lore}"`;
+        document.getElementById('lore-meta').innerText = `${mission.lore_source === 'ollama' ? 'Ollama' : 'Fallback template'} • ${mission.latency_seconds}s`;
+        document.getElementById('ai-latency').innerText = `${mission.latency_seconds}s`;
+        document.getElementById('target-ip').innerText = mission.target;
+        document.getElementById('target-vector').innerText = VECTOR_LABELS[mission.category];
+        document.getElementById('target-arch').innerText = ARCH_LABELS[mission.category];
+        document.getElementById('target-mode').innerText = `Mode: ${mission.mode.toUpperCase()}`;
+        document.getElementById('container-ports').innerText = `TARGET: ${mission.target}`;
+        document.getElementById('container-status-label').innerText = `SANDBOX STATUS: ${mission.mode === 'docker' ? 'RUNNING' : 'SIMULATED'}`;
+        document.getElementById('container-status-dot').className = `w-2.5 h-2.5 rounded-full ${mission.mode === 'docker' ? 'bg-neon-green animate-pulse' : 'bg-neon-amber'}`;
+        document.getElementById('flag-input').value = '';
+        document.getElementById('terminal-session-label').innerText = `root@phantom-sandbox-${mission.category}:~#`;
+        document.getElementById('how-to-solve').innerHTML = HOW_TO_SOLVE[mission.category];
+        document.getElementById('reward-points').innerText = `+${POINTS[mission.category]} pts • +150 XP`;
+
+        resetEvidencePanel();
+        appendTerminal(`[+] Mission deployed: ${mission.title} — target ${mission.target} (${mission.mode})`, 'text-neon-green');
+        appendSocLog(`SANDBOX ${mission.mode.toUpperCase()} :: ${mission.title}`, 'text-neon-green');
+        playSuccessChime();
+      } catch (e) {
+        appendTerminal(`[!] Mission generation failed: ${e.message}`, 'text-neon-red');
+        playAlertBuzz();
+      } finally {
+        spinner.classList.add('hidden');
+        text.innerText = "⚡ GENERATE MISSION";
+        btn.classList.remove('opacity-75');
+      }
+    }
+
+    function resetEvidencePanel() {
+      document.getElementById('provenance-overall-badge').innerText = 'STANDBY';
+      document.getElementById('provenance-overall-badge').className = 'text-[9px] font-mono px-1.5 py-0.5 bg-soc-bg text-slate-400 border border-soc-border rounded';
+      ['http', 'binary', 'heuristic'].forEach(k => {
+        document.getElementById(`prov-${k}-detail`).innerText = 'No scan run yet';
+        document.getElementById(`prov-${k}-badge`).innerText = '—';
+        document.getElementById(`prov-${k}-badge`).className = 'px-2 py-0.5 bg-soc-bg text-slate-500 border border-soc-border rounded text-[10px] font-bold tracking-wider';
+      });
+      document.getElementById('confidence-score').innerText = '—';
+      hideMeme();
+    }
+
+    function showMeme() {
+      const el = document.getElementById('fail-meme');
+      el.innerText = FAIL_MEMES[Math.floor(Math.random() * FAIL_MEMES.length)];
+      el.hidden = false;
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = 'memeShake 0.4s ease';
+    }
+
+    function hideMeme() {
+      document.getElementById('fail-meme').hidden = true;
+    }
+
+    function markBoardSolved(category) {
+      const row = document.querySelector(`[data-board="${category}"]`);
+      const status = document.querySelector(`[data-board-status="${category}"]`);
+      if (!row || !status) return;
+      row.className = "flex items-center justify-between bg-neon-green/10 border border-neon-green/40 px-2.5 py-1.5 rounded";
+      row.querySelector('span').innerText = row.querySelector('span').innerText.replace('🔓', '✅');
+      status.innerText = 'SOLVED';
+      status.className = 'text-neon-green font-bold';
+    }
+
+    function handleCliKey(e) { if (e.key === 'Enter') executeCliCommand(); }
+
+    async function executeCliCommand() {
+      const input = document.getElementById('cli-input');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+      playBeep(800, 'sine', 0.03);
+      appendTerminal(`root@phantom:~$ ${cmd}`, 'text-white font-bold');
+      input.value = '';
+
+      const action = cmd.toLowerCase().split(' ')[0];
+
+      if (!currentMission && action !== 'help' && action !== 'clear' && action !== 'cls') {
+        appendTerminal('[!] No active sandbox. Run "GENERATE MISSION" first.', 'text-neon-red');
+        return;
+      }
+
+      switch (action) {
+        case 'help':
+          appendTerminal(`Available commands:
+  - exploit  : Run the sandbox's exploit endpoint and attempt to recover the flag
+  - curl     : Query the target's /api/health endpoint
+  - scan     : Show simulated port scan of the active target
+  - status   : Show current mission/container state
+  - flag     : Read the flag if already recovered this session
+  - clear    : Clear terminal screen`, 'text-slate-400');
+          break;
+
+        case 'exploit':
+          await runExploit();
+          break;
+
+        case 'curl':
+          await runCurl();
+          break;
+
+        case 'scan':
+          appendTerminal(`Nmap scan report for ${currentMission.target}
+Host is up (0.00012s latency).
+PORT     STATE SERVICE
+80/tcp   open  ${activeSandboxKey === 'web' ? 'http' : activeSandboxKey === 'iot' ? 'http-mqtt-sim' : 'http-stego'}
+Mode: ${currentMission.mode}`, 'text-neon-cyan');
+          break;
+
+        case 'status':
+          appendTerminal(`Mission: ${currentMission.title}
+Category: ${currentMission.category}
+Target: ${currentMission.target}
+Mode: ${currentMission.mode}`, 'text-slate-300');
+          break;
+
+        case 'flag':
+          appendTerminal(document.getElementById('flag-input').value || 'No flag recovered yet. Try "exploit".', 'text-neon-green font-bold');
+          break;
+
+        case 'clear':
+        case 'cls':
+          clearTerminal();
+          break;
+
+        default:
+          appendTerminal(`sh: command not found: ${action}. Type 'help' for tactical reference.`, 'text-neon-red');
+          playAlertBuzz();
+      }
+    }
+
+    async function runExploit() {
+      appendTerminal(`[*] Launching automated exploit against ${currentMission.target}...`, 'text-amber-400');
+      if (currentMission.mode !== 'docker') {
+        setTimeout(() => {
+          appendTerminal(`[+] Simulated exploit successful (no live Docker engine detected).`, 'text-neon-cyan');
+          appendTerminal(`>>> ${currentMission.flag} <<<`, 'text-neon-green font-bold bg-soc-panel p-1 border border-neon-green/30');
+          document.getElementById('flag-input').value = currentMission.flag;
+          playSuccessChime();
+        }, 400);
+        return;
+      }
+      try {
+        let result;
+        if (activeSandboxKey === 'web') {
+          const r = await fetch(`http://${currentMission.target}/api/v1/authenticate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: "admin' OR 1=1--", password: 'x' })
+          });
+          result = await r.json();
+        } else if (activeSandboxKey === 'iot') {
+          const r = await fetch(`http://${currentMission.target}/scada/pumps/override`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ override: true })
+          });
+          result = await r.json();
+          result.flag = result.safety_dump && result.safety_dump.flag;
+        } else {
+          appendTerminal('[i] Forensic target requires manual extraction: download transmission.png and decode the LSB payload, then paste the flag into the scanner.', 'text-neon-cyan');
+          const link = `http://${currentMission.target}/transmission.png`;
+          appendTerminal(`[+] Image URL: ${link}`, 'text-neon-cyan');
+          return;
+        }
+        if (result.flag) {
+          appendTerminal(`[+] Exploit succeeded. Server returned flag.`, 'text-neon-green');
+          appendTerminal(`>>> ${result.flag} <<<`, 'text-neon-green font-bold bg-soc-panel p-1 border border-neon-green/30');
+          document.getElementById('flag-input').value = result.flag;
+          playSuccessChime();
+        } else {
+          appendTerminal(`[-] Exploit did not yield a flag: ${JSON.stringify(result)}`, 'text-neon-red');
+        }
+      } catch (e) {
+        appendTerminal(`[!] Exploit request failed (CORS or network): ${e.message}. Try opening the target UI directly.`, 'text-neon-red');
+      }
+    }
+
+    async function runCurl() {
+      if (currentMission.mode !== 'docker') {
+        appendTerminal(`{"status":"UP (simulated)","challenge":"${currentMission.title}"}`, 'text-neon-green');
+        return;
+      }
+      try {
+        const r = await fetch(`http://${currentMission.target}/api/health`);
+        const body = await r.json();
+        appendTerminal(JSON.stringify(body, null, 2), 'text-neon-green');
+      } catch (e) {
+        appendTerminal(`[!] curl failed: ${e.message}`, 'text-neon-red');
+      }
+    }
+
+    function appendTerminal(text, className = 'text-slate-300') {
+      const screen = document.getElementById('terminal-screen');
+      const line = document.createElement('div');
+      line.className = className + ' whitespace-pre-wrap';
+      line.innerText = text;
+      screen.appendChild(line);
+      screen.scrollTop = screen.scrollHeight;
+    }
+
+    function clearTerminal() {
+      document.getElementById('terminal-screen').innerHTML = '<div class="text-slate-500">Terminal buffer cleared. Ready for input.</div>';
+    }
+
+    function appendSocLog(text, className = 'text-slate-400') {
+      const stream = document.getElementById('soc-log-stream');
+      const line = document.createElement('div');
+      line.className = 'flex items-center space-x-2 ' + className;
+      const ts = new Date().toLocaleTimeString();
+      line.innerHTML = `<span class="text-neon-cyan">[${ts}]</span><span>${text}</span>`;
+      stream.appendChild(line);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    async function submitFlagVerification() {
+      if (!currentMission) {
+        appendTerminal('[!] No active mission to verify against.', 'text-neon-red');
+        return;
+      }
+      const submitted = document.getElementById('flag-input').value.trim();
+      const btn = document.getElementById('verify-flag-btn');
+      btn.innerHTML = `<span>ANALYZING PROVENANCE...</span>`;
+      playBeep(900, 'sawtooth', 0.1);
+
+      try {
+        const result = await api('/api/verify', {
+          method: 'POST',
+          body: JSON.stringify({ category: currentMission.category, flag: submitted })
+        });
+
+        renderEvidence(result);
+        playerXp = result.xp;
+        document.getElementById('player-xp').innerText = playerXp;
+
+        if (result.match) {
+          hideMeme();
+          if (!solvedCategories.has(currentMission.category)) {
+            solvedCategories.add(currentMission.category);
+            verifiedCount = solvedCategories.size;
+            totalScore += POINTS[currentMission.category];
+            document.getElementById('verified-count').innerText = `${verifiedCount}/3`;
+            document.getElementById('score-total').innerText = `${totalScore} pts`;
+            markBoardSolved(currentMission.category);
+          }
+          const successLine = SUCCESS_MEMES[Math.floor(Math.random() * SUCCESS_MEMES.length)];
+          appendTerminal(`[+++] ${successLine}`, 'text-neon-green font-bold');
+          playSuccessChime();
+          confettiBurst();
+        } else {
+          appendTerminal(`[---] Nope, that's not it. Evidence Scanner found no match — keep digging.`, 'text-neon-red font-bold');
+          playAlertBuzz();
+          showMeme();
+        }
+      } catch (e) {
+        appendTerminal(`[!] Verification failed: ${e.message}`, 'text-neon-red');
+      } finally {
+        btn.innerHTML = `<span>RUN EVIDENCE SCANNER</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      }
+    }
+
+    function renderEvidence(result) {
+      const badgeClass = (status) => {
+        const base = 'px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border ';
+        if (status.includes('VERIFIED') || status.includes('GROUNDED') || status.includes('CONFIRMED')) {
+          return base + 'bg-neon-green/20 text-neon-green border-neon-green/40';
+        }
+        return base + 'bg-neon-red/20 text-neon-red border-neon-red/40';
+      };
+
+      document.getElementById('prov-http-detail').innerText = result.match ? 'Server log matched exploit trace' : 'No matching log entry found';
+      document.getElementById('prov-http-badge').innerText = result.evidence.http_audit;
+      document.getElementById('prov-http-badge').className = badgeClass(result.evidence.http_audit);
+
+      document.getElementById('prov-binary-detail').innerText = result.match ? 'Flag string matches container secret' : 'Flag string mismatch';
+      document.getElementById('prov-binary-badge').innerText = result.evidence.hash_grounding;
+      document.getElementById('prov-binary-badge').className = badgeClass(result.evidence.hash_grounding);
+
+      document.getElementById('prov-heuristic-detail').innerText = result.match ? 'Exploit signature consistent with vector' : 'No confirmed exploit signature';
+      document.getElementById('prov-heuristic-badge').innerText = result.evidence.heuristic_signature;
+      document.getElementById('prov-heuristic-badge').className = badgeClass(result.evidence.heuristic_signature);
+
+      document.getElementById('provenance-overall-badge').innerText = result.match ? 'VERIFIED' : 'REJECTED';
+      document.getElementById('provenance-overall-badge').className = result.match
+        ? 'text-[9px] font-mono px-1.5 py-0.5 bg-neon-green/20 text-neon-green border border-neon-green/40 rounded'
+        : 'text-[9px] font-mono px-1.5 py-0.5 bg-neon-red/20 text-neon-red border border-neon-red/40 rounded';
+
+      document.getElementById('confidence-score').innerText = `${result.confidence}% (${result.match ? 'Absolute Proof' : 'Insufficient Evidence'})`;
+    }
+
+    async function requestHint(tier, cost) {
+      if (!currentMission) {
+        appendTerminal('[!] No active mission. Generate one first.', 'text-neon-red');
+        return;
+      }
+      playBeep(750, 'sine', 0.08);
+      try {
+        const result = await api('/api/hint', {
+          method: 'POST',
+          body: JSON.stringify({ category: currentMission.category, tier })
+        });
+        playerXp = result.xp;
+        document.getElementById('player-xp').innerText = playerXp;
+        appendCommanderMessage(`Tactical Hint [${tier.toUpperCase()} (-${cost} XP)]`, result.hint);
+      } catch (e) {
+        alert(e.message.includes('402') || e.message.toLowerCase().includes('xp') ? 'Insufficient XP for this hint tier.' : e.message);
+      }
+    }
+
+    async function sendCommanderMessage() {
+      const input = document.getElementById('commander-input');
+      const question = input.value.trim();
+      if (!question) return;
+      input.value = '';
+      playBeep(650, 'sine', 0.04);
+      appendCommanderUserMessage(question);
+
+      try {
+        const start = performance.now();
+        const result = await api('/api/commander/chat', {
+          method: 'POST',
+          body: JSON.stringify({ category: currentMission ? currentMission.category : activeSandboxKey, message: question })
+        });
+        const elapsed = ((performance.now() - start) / 1000).toFixed(2);
+        document.getElementById('commander-latency-tag').innerText = `${elapsed}s (${result.source})`;
+        playBeep(900, 'sine', 0.06);
+        appendCommanderMessage('Commander', result.reply);
+      } catch (e) {
+        appendCommanderMessage('Commander', `[link error] ${e.message}`);
+      }
+    }
+
+    function appendCommanderMessage(sender, text) {
+      const box = document.getElementById('commander-chat-box');
+      const div = document.createElement('div');
+      div.className = "bg-soc-panel/80 border-l-2 border-neon-cyan p-2 rounded text-slate-300";
+      div.innerHTML = `<div class="text-[9px] text-neon-cyan font-bold uppercase mb-0.5"></div><div></div>`;
+      div.querySelector('div').innerText = sender;
+      div.querySelectorAll('div')[1].innerText = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function appendCommanderUserMessage(text) {
+      const box = document.getElementById('commander-chat-box');
+      const div = document.createElement('div');
+      div.className = "bg-soc-bg border-r-2 border-neon-green p-2 rounded text-slate-300 text-right";
+      div.innerHTML = `<div class="text-[9px] text-neon-green font-bold uppercase mb-0.5">Operator</div><div></div>`;
+      div.querySelectorAll('div')[1].innerText = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function inspectTargetWeb() {
+      if (!currentMission) { appendTerminal('[!] No active mission.', 'text-neon-red'); return; }
+      playBeep(700, 'sine', 0.05);
+      document.getElementById('modal-target-title').innerText = `Target Sandbox: ${currentMission.title}`;
+      document.getElementById('modal-target-endpoint').innerText = `http://${currentMission.target}/api/health`;
+      document.getElementById('modal-open-link').href = `http://${currentMission.target}/api/health`;
+      document.getElementById('target-modal').classList.remove('hidden');
+    }
+    function closeTargetModal() { document.getElementById('target-modal').classList.add('hidden'); }
+
+    function copyTargetIp() {
+      if (!currentMission) return;
+      navigator.clipboard.writeText(currentMission.target);
+      playBeep(1100, 'sine', 0.04);
+      appendTerminal(`[+] Target copied to clipboard: ${currentMission.target}`, 'text-neon-green');
+    }
+
+    function triggerEmergencyReset() {
+      if (confirm("Execute zero-trace instance wipe? This will reset the local session.")) {
+        playAlertBuzz();
+        location.reload();
+      }
+    }
+
+    selectSandbox('web');
+    checkHealth();
+  </script>
+</body>
+</html>
