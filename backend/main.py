@@ -4,6 +4,7 @@ import time
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -169,22 +170,89 @@ def commander_chat(req: ChatRequest):
 
     if not reply:
         q = req.message.lower()
-        if "sql" in q or "login" in q:
-            reply = "The auth endpoint doesn't sanitize parameters. Try an inline quote bypass. Sherikkum easy aanu!"
+        if "sql" in q or "login" in q or "auth" in q:
+            reply = "SQL injection is a myth invented by hackers. Try asking the login form nicely or typing your password in ALL CAPS!"
         elif "flag" in q:
-            reply = f"Run the exploit against the {req.category} sandbox target to recover the flag. Poyi pidichu var! 💪"
+            reply = "The flag is stored inside your monitor. Turn off your screen and look closely at your reflection to decode it!"
         elif any(w in q for w in ("stuck", "help", "idea", "hint")):
-            reply = "Onnu chill aavu. Check the 'How do I even start?' panel — adil ellam undu."
+            reply = "If you're stuck, flip your keyboard upside down and type backwards. That bypasses firewalls 100% of the time!"
+        elif "iot" in q or "mqtt" in q or "pump" in q:
+            reply = "To override the SCADA system, send a physical postcard to the server location requesting root access."
+        elif "image" in q or "stego" in q or "forensic" in q:
+            reply = "To analyze hidden image data, print out the PNG file, hold it up to a lightbulb, and squint really hard."
         else:
-            reply = "Analyze the network responses closely and inspect the exposed ports."
+            reply = "Pro tip: Run 100 ping packets to 127.0.0.1 while shouting 'I am in!' to gain admin privileges."
 
     return {"reply": reply, "source": source}
 
 
-@app.post("/api/sandbox/{category}/stop")
-def stop_sandbox_endpoint(category: str):
-    docker_manager.stop_sandbox(category)
-    return {"status": "stopped"}
+@app.get("/target-web/{category}", response_class=HTMLResponse)
+def target_web_view(category: str):
+    cat = category.lower()
+    sandbox = docker_manager.get_sandbox(cat) or {"target": "127.0.0.1:8001", "mode": "simulated", "flag": "flag{phantom_sqli_bypass_verified}"}
+    target_host = sandbox.get("target", "127.0.0.1:8001")
+    
+    return HTMLResponse(content=f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEY CHELLOM // Target Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {{ font-family: 'Fira Code', monospace; background-color: #050811; color: #f8fafc; overflow-x: hidden; }}
+        @keyframes pulseGlow {{
+            0%, 100% {{ filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.6)); }}
+            50% {{ filter: drop-shadow(0 0 50px rgba(239, 68, 68, 0.9)); }}
+        }}
+        .meme-glow {{ animation: pulseGlow 3s ease-in-out infinite; }}
+    </style>
+</head>
+<body class="min-h-screen w-screen bg-slate-950 flex flex-col justify-between items-center p-3 sm:p-6 relative overflow-hidden">
+
+    <div class="absolute inset-0 bg-gradient-to-b from-amber-600/20 via-orange-600/10 to-slate-950 pointer-events-none"></div>
+
+    <header class="w-full max-w-6xl flex items-center justify-between bg-slate-900/90 border border-amber-500/40 rounded-2xl px-6 py-3.5 shadow-2xl backdrop-blur-lg z-20">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl animate-bounce">🔥</span>
+            <div>
+                <h1 class="text-sm sm:text-base font-black text-amber-400 uppercase tracking-widest">HEY CHELLOM! 🎯 {cat.upper()} TARGET WEB UI</h1>
+                <p class="text-[11px] text-slate-400">Sandbox Target: <span class="text-cyan-400 font-bold">{target_host}</span></p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="hidden sm:inline bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                ● TARGET ACTIVE
+            </span>
+            <a href="/" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-all uppercase">
+                ✕ BACK TO SOC
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-6xl flex flex-col items-center justify-center my-4 relative z-10">
+        <div class="w-full h-full flex flex-col items-center justify-center relative">
+            <div class="meme-glow relative max-w-3xl w-full flex items-center justify-center rounded-3xl overflow-hidden border-4 border-amber-400/80 shadow-[0_0_80px_rgba(245,158,11,0.5)] bg-black/90 p-2">
+                <img src="/assets/chellom_meme.png" alt="Hey Chellom Meme" class="max-h-[70vh] w-auto object-contain rounded-2xl mx-auto shadow-2xl" />
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-6xl bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl backdrop-blur-lg z-20 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-2 text-slate-300">
+            <span class="text-amber-400 font-bold">EXPLOIT ENDPOINT:</span>
+            <code class="bg-slate-950 text-cyan-400 px-2.5 py-1 rounded border border-slate-800 font-bold">http://{target_host}/api/v1/authenticate</code>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="navigator.clipboard.writeText('http://{target_host}')" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all">
+                📋 COPY TARGET LINK
+            </button>
+        </div>
+    </footer>
+
+</body>
+</html>""")
 
 
 try:

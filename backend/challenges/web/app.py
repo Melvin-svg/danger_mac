@@ -16,6 +16,37 @@ DB.execute("INSERT INTO users VALUES ('guest', 'guest', 0)")
 DB.commit()
 
 
+@app.route("/")
+def index():
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HEY CHELLOM // Web Challenge Target</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.6)); }
+            50% { filter: drop-shadow(0 0 50px rgba(239, 68, 68, 0.9)); }
+        }
+        .meme-glow { animation: pulseGlow 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="min-h-screen w-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center p-4 font-mono">
+    <div class="text-center my-2">
+        <h1 class="text-xl font-black text-amber-400">🔥 HEY CHELLOM! 🎯 SQL INJECTION TARGET WEB UI</h1>
+        <p class="text-xs text-slate-400">Send POST request to <code class="text-cyan-400">/api/v1/authenticate</code></p>
+    </div>
+    <div class="flex-1 flex items-center justify-center">
+        <div class="meme-glow p-2 bg-black/90 border-4 border-amber-400 rounded-3xl shadow-2xl">
+            <img src="http://localhost:8000/assets/chellom_meme.png" alt="Hey Chellom Meme" class="max-h-[75vh] w-auto object-contain rounded-2xl" />
+        </div>
+    </div>
+    <div class="text-xs text-slate-400 my-2">Operation Phantom Forge // AVST-Lite</div>
+</body>
+</html>"""
+
+
 @app.route("/api/health")
 def health():
     return jsonify({"status": "UP", "cve": "CVE-2024-SQLI", "service": "SQLite-Auth-Portal"})

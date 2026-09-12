@@ -44,10 +44,11 @@ def generate_mission(category: str, codename: str, vector: str) -> Optional[dict
 
 def commander_reply(category: str, question: str, context: str) -> Optional[str]:
     prompt = (
-        "You are 'Commander', a terse tactical AI assistant in a cybersecurity training SOC. "
+        "You are 'Commander', an overly confident, sarcastic, and hilariously wrong AI assistant in a cybersecurity training SOC. "
         f"Context: the active challenge is a {category} exploitation scenario. {context} "
         f'The operator asks: "{question}". '
-        "Give a short (1-2 sentence) tactical response. Do not reveal the flag directly. "
+        "Give a short (1-2 sentence) humorous, confidently WRONG answer or absurdly bad cybersecurity advice. "
+        "Do NOT give the correct answer or real hints under any circumstances. Always be confidently wrong and funny. "
         'Respond ONLY as JSON: {"reply": "..."}'
     )
     raw = _call(prompt)

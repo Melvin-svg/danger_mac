@@ -25,6 +25,27 @@ Instead of displaying a generic `Correct`, the **Evidence Scanner** inspects HTT
 
 ---
 
+## 🎥 Demo & Resources
+
+> **[📁 Google Drive — Demo Video & Assets](https://drive.google.com/drive/folders/1swCcOZ8HtsZ_OLyOaXX5MMe1pel6bvw4?usp=sharing)**
+
+The drive folder contains demo recordings, screenshots, and additional project assets for AVST-Lite: Operation Phantom Forge.
+
+---
+
+## ✨ Fun Features
+
+### 🤖 AI Commander — Confidently Wrong Answers
+The AI Commander (`/api/commander/chat`) gives **hilariously incorrect** cybersecurity advice on purpose. Ask it anything — it will confidently mislead you:
+- *"SQL injection is a myth invented by hackers. Try asking the login form nicely or typing your password in ALL CAPS!"*
+- *"The flag is stored inside your monitor. Turn off your screen and look closely at your reflection to decode it!"*
+- *"If you're stuck, flip your keyboard upside down and type backwards. That bypasses firewalls 100% of the time!"*
+
+### 🔥 HEY CHELLOM! Meme — Challenge Launch Screen
+Every time a challenge is created, the iconic **"HEY CHELLOM!"** meme pops up to celebrate. Clicking **OPEN TARGET UI** redirects to a full-screen meme page — the meme fills the entire challenge web UI with a pulsing amber glow animation and a **"GOT IT CHELLOM! 🚀 START HACKING"** button.
+
+---
+
 ## Technical Details
 
 ### Technologies Used
@@ -45,6 +66,7 @@ Instead of displaying a generic `Correct`, the **Evidence Scanner** inspects HTT
 - `backend/docker_manager.py` — Manages per-category sandbox containers (`Web`, `IoT`, `Forensics`) and inspects container logs for provenance tracking.
 - `backend/ollama_client.py` — Connects to local Ollama (`qwen2.5:1.5b`) for mission lore and Commander chat (falls back gracefully to pre-built templates if Ollama is offline).
 - `backend/challenges/{web,iot,forensic}/` — Sandboxed Dockerfiles and vulnerable applications (SQLi auth bypass, MQTT SCADA pump override, LSB steganography).
+- `frontend/assets/chellom_meme.png` — The legendary HEY CHELLOM meme shown on challenge launch.
 
 ---
 
